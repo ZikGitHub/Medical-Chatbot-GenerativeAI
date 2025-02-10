@@ -3,6 +3,7 @@ from pinecone.grpc import PineconeGRPC as Pinecone
 from pinecone import ServerlessSpec
 from langchain_pinecone import PineconeVectorStore
 from dotenv import load_dotenv
+import time
 import os
 
 load_dotenv()
@@ -13,23 +14,22 @@ extracted_data = load_pdf_file(data="data/")
 text_chunks = text_split(extracted_data)
 embeddings = download_embedding()
 
-api_key = os.environ.get("PINE_CONE_API_KEY")
+api_key = os.environ.get("PINECONE_API_KEY")
 pc = Pinecone(api_key= api_key)
 
-index = "testbot"
+index_name = "testbot"
 
-# pc.create_index(
-#     name = index,
-#     dimension=384,
-#     metric="cosine",
-#     spec=ServerlessSpec(
-#         cloud="aws",
-#         region="us-east-1"
-#     )
-# )
+if not pc.has_index(index_name):
+    pc.create_index(
+        name=index_name,
+        dimension=384,
+        metric="cosine",
+        spec=ServerlessSpec(
+            cloud="aws", 
+            region="us-east-1"
+        ) 
+    ) 
 
-# docsearch = PineconeVectorStore.from_documents(
-#     documents=text_chunks,
-#     index_name=index,
-#     embedding=embeddings,
-# )
+# Wait for the index to be ready
+while not pc.describe_index(index_name).status['ready']:
+    time.sleep(1)
